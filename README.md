@@ -19,6 +19,33 @@ Ce projet vise à concevoir une **ruche connectée** capable de :
 
 Cette partie du projet se concentre sur **la communication à distance** des données.
 
+![Schéma général projet](./images/schemaGeneral.png)
+
+---
+
+## Dossiers :
+- 📁 CompteRendu_Daniel
+- 📁 CompteRendu_Xavier
+- 📁 Partie_Electronique
+- 📁 Partie_Informatique
+
+---
+
+## GLOSSAIRE :
+
+- GSM (Global System for Mobile Communications) :
+C'est un standard de communication mobile utilisé pour la téléphonie cellulaire et la transmission de données. Il permet l’envoi de messages SMS, les appels et la connexion à Internet via GPRS/EDGE/3G/4G. Le GSM est largement utilisé pour les dispositifs IoT nécessitant une connectivité dans des environnements sans Wi-Fi.
+
+- LoRa (Long Range) :
+C'est une technologie de communication sans fil à longue portée et à faible consommation d'énergie, utilisée pour connecter des dispositifs IoT aux réseaux LPWAN (Low Power Wide Area Network). LoRa permet de transmettre de petits paquets de données sur de longues distances (jusqu'à 15 km en zones rurales) avec une consommation d’énergie minimale.
+
+- ESP32 :
+C'est un microcontrôleur développé par Espressif, intégrant Wi-Fi et Bluetooth, ainsi que plusieurs broches GPIO pour les capteurs et modules externes. Il est largement utilisé dans les projets IoT grâce à sa connectivité, sa puissance et son faible coût.
+Il va nous permetre de récuperer les information des LoRa et les envoier vers le module GSM pour ensuite transmettre les information au utilisateur.
+
+- SIM7000 :
+C'est un module de communication GSM/GPRS/NB-IoT/LTE Cat-M1 développé par Simcom. Il permet aux dispositifs IoT d'envoyer et de recevoir des données via les réseaux mobiles, en prenant en charge les connexions basse consommation, idéales pour les capteurs distants et les applications de surveillance.
+
 ---
 
 ## 🧩 Technologies utilisées
@@ -39,18 +66,12 @@ Cette partie du projet se concentre sur **la communication à distance** des don
 
 ---
 
-## 🚧 Prochaines étapes
+## Etapes du projet 
 
-- Finaliser le **débogage de la carte** pour une communication stable entre les composants.  
-- **Intégrer le module LoRa** à la passerelle GSM.  
-- **Optimiser la consommation énergétique** pour un fonctionnement autonome sur batterie.
+### 🚧 Etape 1:
+- Analyse du projet existant et definier les tacher pour continuer le projet. Repartition des taches dans le groupe 
 
 ---
-
-## 📁 Structure du dépôt
-
-
-
 
 ## 💡 Référence du projet précédent
 
