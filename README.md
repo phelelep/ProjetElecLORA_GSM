@@ -19,7 +19,7 @@ Ce projet vise à concevoir une **ruche connectée** capable de :
 
 Cette partie du projet se concentre sur **la communication à distance** des données.
 
-![Schéma général projet](./images/schemaGeneral.png)
+![Schéma général projet](./Images/schemaGeneral.png)
 
 ---
 
