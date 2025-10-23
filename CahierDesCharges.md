@@ -19,7 +19,9 @@ PROMOTION : ELSE4 FISA 2025-2026
 - Assurer la fiabilité et la faible consommation énergétique du système pour un fonctionnement autonome sur batterie.
 
 ## 🎯 Liste des objectifs
-
-1. Envoyer des données à distance en utilisant le **module GSM (SIM7000G)**.  
-2. Recevoir et traiter les données (témpérature, poids des ruches) transmises avec LoRa.  
-3. Utiliser le module ESP32 comme passerelle entre **LoRa et GSM**, afin d’assurer la **récupération et la transmission** fiables des données collectées depuis les ruches.
+ 
+ 
+1. Utiliser le code fournit par l'quipe precedente pour etablier une communication avec le GSM.
+     le module ESP32 (qui integre Lora) le connecter à SIM7000G, afin de d'envoier un signal à distance.
+2. Implementer la partir LoRa pour recuperer un tramme des donnes.
+3. Recevoir et traiter les données (témpérature, poids des ruches) transmises avec LoRa. 
