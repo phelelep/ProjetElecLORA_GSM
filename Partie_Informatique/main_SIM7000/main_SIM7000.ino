@@ -31,10 +31,10 @@ const char gprsPass[] = "";
 #define TIME_TO_SLEEP  60          // Durée pendant laquelle l'ESP32 dormira (en secondes)
 
 #define UART_BAUD   115200
-#define PIN_DTR     25
-#define PIN_TX      20
-#define PIN_RX      19
-#define PWR_PIN     4
+//#define PIN_DTR     25
+#define PIN_RX      21
+#define PIN_TX      23
+#define PWR_KEY     13
 
 // #define SD_MISO     2
 // #define SD_MOSI     15
@@ -54,21 +54,26 @@ void setup(){
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
-  pinMode(PWR_PIN, OUTPUT);
-  digitalWrite(PWR_PIN, HIGH);
-  delay(300);
-  digitalWrite(PWR_PIN, LOW);
+ 
 
   Serial.println("\nPatientez...");
 
   delay(1000);
 
+  pinMode(PWR_KEY, OUTPUT);
+  digitalWrite(PWR_KEY, HIGH);
+  delay(300);
+  digitalWrite(PWR_KEY, LOW);
+
   SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
+
+
+ 
 
   // Redémarrer prend un certain temps
   // Pour le sauter, appelez init() au lieu de restart()
   Serial.println("Initialisation du modem...");
-  if (!modem.restart()) {
+  if (!modem.init()) {
     Serial.println("Échec du redémarrage du modem, tentative de continuation sans redémarrage");
   }
 
@@ -172,32 +177,39 @@ void loop(){
          }
       }
     }
-  } else {
+  } 
+  else 
+  {
     Serial.println("Échec de récupération du PDP !");
   }
 
   Serial.println("\n\n\nAttente du réseau...");
-  if (!modem.waitForNetwork()) {
+  if (!modem.waitForNetwork()) 
+  {
     delay(10000);
     return;
   }
 
-  if (modem.isNetworkConnected()) {
+  if (modem.isNetworkConnected()) 
+  {
     Serial.println("Réseau connecté");
   }
 
   // --------TEST GPRS--------
   Serial.println("\n---DÉBUT DU TEST GPRS---\n");
   Serial.println("Connexion à : " + String(apn));
-  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) 
+  {
     delay(10000);
     return;
   }
 
   Serial.print("Statut GPRS : ");
-  if (modem.isGprsConnected()) {
+  if (modem.isGprsConnected()) 
+  {
     Serial.println("connecté");
-  } else {
+  } else 
+  {
     Serial.println("non connecté");
   }
 
@@ -218,7 +230,8 @@ void loop(){
 
   SerialAT.println("AT+CPSI?");     //Obtenir le type de connexion et la bande
   delay(500);
-  if (SerialAT.available()) {
+  if (SerialAT.available()) 
+  {
     String r = SerialAT.readString();
     Serial.println(r);
   }
@@ -226,9 +239,11 @@ void loop(){
   Serial.println("\n---FIN DU TEST GPRS---\n");
 
   modem.gprsDisconnect();
-  if (!modem.isGprsConnected()) {
+  if (!modem.isGprsConnected()) 
+  {
     Serial.println("GPRS déconnecté");
-  } else {
+  } else 
+  {
     Serial.println("Déconnexion GPRS : Échec");
   }
 
@@ -242,7 +257,8 @@ void loop(){
   // Essayer d'éteindre (le modem peut décider de redémarrer automatiquement)
   // Pour éteindre complètement, utiliser les pins Reset/Enable
   modem.sendAT("+CPOWD=1");
-  if (modem.waitResponse(10000L) != 1) {
+  if (modem.waitResponse(10000L) != 1) 
+  {
     DBG("+CPOWD=1");
   }
   // La commande suivante fait la même chose que les lignes précédentes
@@ -255,7 +271,8 @@ void loop(){
   esp_deep_sleep_start();
 
   // Ne rien faire pour l’éternité
-  while (true) {
+  while (true) 
+  {
       modem.maintain();
   }
 }
