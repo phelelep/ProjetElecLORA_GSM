@@ -2,8 +2,46 @@
 #define TINY_GSM_RX_BUFFER 1024 // Définir le tampon RX à 1Ko
 #define SerialAT Serial1
 
+//=========Partie traitement donnes ruches==============
+
+// 1. Structure pour représenter les données d'une ruche
+struct rucheData {
+  int id;
+  float temperature;
+  float poids;
+};
+// declaration de nombre total de ruche
+const int  nrRuches = 10;
+rucheData ruches[nrRuches]; 
+
+//simuler les donnes 
+void simulData(){
+  for (int i =0; i<nrRuches; i++){
+      ruches[i].id = i+1;
+      ruches[i].temperature = random(0, 400) / 10.0; // du 0 à 40;
+      ruches[i].poids= random(100000, 400000) / 10.0; // du 10kg à 30 kg
+  }
+}
+
+String serializeData() {
+  String payload = "[";
+  for (int i = 0; i < nrRuches; i++) {
+    payload += "{";
+    payload += "\"id\":" + String(ruches[i].id) + ",";
+    payload += "\"temp\":" + String(ruches[i].temperature) + ",";
+    payload += "\"weight\":" + String(ruches[i].poids);
+    payload += "}";
+    if (i < nrRuches - 1) {
+      payload += ",";
+    }
+  }
+  payload += "]";
+  return payload;
+}
+//======================================================
+
 // Voir toutes les commandes AT, si souhaité
-#define DUMP_AT_COMMANDS
+//#define DUMP_AT_COMMANDS
 
 // Définir le code PIN de la carte SIM, si nécessaire
 #define GSM_PIN ""
@@ -14,7 +52,7 @@ const char gprsUser[] = "";
 const char gprsPass[] = "";
 
 // Définir un numéro de téléphone pour tester les SMS (doit être au format international avec le "+" devant)
-#define SMS_TARGET  "+33645218132"
+#define SMS_TARGET  "+33634165337" // Nr du Daniel
 
 #include <TinyGsmClient.h>
 #include <Ticker.h>
@@ -32,8 +70,8 @@ const char gprsPass[] = "";
 
 #define UART_BAUD   115200
 //#define PIN_DTR     25
-#define PIN_RX      21
-#define PIN_TX      23
+#define PIN_RX      16
+#define PIN_TX      17
 #define PWR_KEY     13
 
 // #define SD_MISO     2
@@ -74,7 +112,7 @@ void setup(){
   // Pour le sauter, appelez init() au lieu de restart()
   Serial.println("Initialisation du modem...");
   if (!modem.init()) {
-    Serial.println("Échec du redémarrage du modem, tentative de continuation sans redémarrage");
+    Serial.println("Échec d'initialisation du modem, tentative de continuation sans redémarrage");
   }
 
   String name = modem.getModemName();
@@ -92,16 +130,9 @@ void setup(){
 }
 
 void loop(){
-  // Redémarrer prend un certain temps
-  // Pour le sauter, appelez init() au lieu de restart()
-  // Serial.println("Initialisation du modem...");
-  // if (!modem.init()) {
-  //   Serial.println("Échec de l'initialisation du modem, tentative de continuation sans redémarrage");
-  // }
-
-  modem.sendAT("+CFUN=0 ");
+  modem.sendAT("+CFUN=0 "); //Envoie la commande au modem pour le placer en mode Minimum Functionality (Fonctionnalité Minimale).
   if (modem.waitResponse(10000L) != 1) {
-    DBG(" +CFUN=0  échoué ");
+    DBG(" +CFUN=0  échoué -> (mise du modem en Fonctionnalité Minimale échoué)"); //config to minim functionality = KO
   }
   delay(200);
 
@@ -113,7 +144,7 @@ void loop(){
   */
   String res;
   // CHANGER LE MODE RÉSEAU, SI NÉCESSAIRE
-  res = modem.setNetworkMode(2);
+  res = modem.setNetworkMode(2); // mode automatique
   if (res != "1") {
     DBG("setNetworkMode échoué ");
     return ;
@@ -126,23 +157,26 @@ void loop(){
     3 CAT-M et NB-IoT
   */
   // CHANGER LE MODE PRÉFÉRÉ, SI NÉCESSAIRE
-  res = modem.setPreferredMode(1);
+  res = modem.setPreferredMode(1); // mode CAT-M
   if (res != "1") {
     DBG("setPreferredMode échoué ");
     return ;
   }
   delay(200);
 
-  modem.sendAT("+CFUN=1 ");
+  modem.sendAT("+CFUN=1 "); //Fonctionnalité Complète
   if (modem.waitResponse(10000L) != 1) {
     DBG(" +CFUN=1 échoué ");
   }
   delay(200);
 
-  SerialAT.println("AT+CGDCONT?");
+  SerialAT.println("AT+CGDCONT?"); // demande de PDP
   delay(500);
-  if (SerialAT.available()) {
-    input = SerialAT.readString();
+  /*
+  Block de code qui garantit la configuration de l'APN
+  */
+  if (SerialAT.available()) { //Vérifie si le modem a envoyé des données.
+    input = SerialAT.readString(); //Lit toute la réponse du modem dans la variable input.
     for (int i = 0; i < input.length(); i++) {
       if (input.substring(i, i + 1) == "\n") {
         pieces[counter] = input.substring(lastIndex, i);
@@ -163,7 +197,7 @@ void loop(){
           char c = pieces[y][x];  // récupère un octet du tampon
           if (c == ',') {
             if (input.indexOf(": ") >= 0) {
-              String data = input.substring((input.indexOf(": ") + 1));
+              String data = input.substring((input.indexOf(": ") + 1)); //Extrait la valeur du CID
               if ( data.toInt() > 0 && data.toInt() < 25) {
                 modem.sendAT("+CGDCONT=" + String(data.toInt()) + ",\"IP\",\"" + String(apn) + "\",\"0.0.0.0\",0,0,0,0");
               }
