@@ -54,8 +54,13 @@ const char gprsPass[] = "";
 // Définir un numéro de téléphone pour tester les SMS (doit être au format international avec le "+" devant)
 #define SMS_TARGET  "+33634165337" // Nr du Daniel
 
+// --- AJOUTS POUR HTTP ---
+const char server[] = "rucher.polytech.unice.fr";
+const int port = 80; // Port HTTP standard
+
+
 #include <TinyGsmClient.h>
-#include <Ticker.h>
+//#include <Ticker.h>
 
 #ifdef DUMP_AT_COMMANDS  // si activé, nécessite la lib streamDebugger
   #include <StreamDebugger.h>
@@ -65,6 +70,11 @@ const char gprsPass[] = "";
   TinyGsm modem(SerialAT);
 #endif
 
+// --- AJOUT CLIENT HTTP ---
+TinyGsmClient client(modem);
+// -------------------------
+
+
 #define uS_TO_S_FACTOR 1000000ULL  // Facteur de conversion de microsecondes en secondes
 #define TIME_TO_SLEEP  60          // Durée pendant laquelle l'ESP32 dormira (en secondes)
 
@@ -73,69 +83,103 @@ const char gprsPass[] = "";
 #define PIN_RX      16
 #define PIN_TX      17
 #define PWR_KEY     13
-
-// #define SD_MISO     2
-// #define SD_MOSI     15
-// #define SD_SCLK     14
-// #define SD_CS       13
 #define LED_PIN     12
 
-int counter, lastIndex, numberOfPieces = 24;
-String pieces[24], input;
 
+//======================================
+//    FONCTION HTTP POST
+//======================================
+void sendDataOverHTTP() {
+  Serial.println("--- DÉBUT ENVOI HTTP POST ---");
+  simulData(); 
+  String payload = serializeData(); // create a JSON
+  
+  Serial.println("Payload JSON créé :");
+  Serial.println(payload);
+
+  Serial.print("Connexion à ");
+  Serial.println(server);
+  if (client.connect(server, port)) {
+      Serial.println("Connecté. Envoi de la requête POST...");
+
+      // Construire et envoyer la requête HTTP POST
+      // Assurez-vous que le chemin (le "/" après POST) est correct.
+      // Si l'API attend les données sur http://.../api/data, mettez "/api/data"
+      client.print(String("POST / HTTP/1.1\r\n")); 
+      client.print(String("Host: ") + server + "\r\n");
+      client.print("Connection: close\r\n");
+      client.print("Content-Type: application/json\r\n");
+      client.print(String("Content-Length: ") + payload.length() + "\r\n");
+      client.print("\r\n"); // Ligne vide OBLIGATOIRE (fin des en-têtes)
+      client.print(payload);   // Envoyer le corps de la requête (votre JSON)
+
+      Serial.println("Requête envoyée.");
+
+      // 4. Attendre et lire la réponse du serveur
+      long timeout = millis();
+      while (client.available() == 0) {
+        if (millis() - timeout > 5000) { // 5 secondes de timeout
+          Serial.println(">>> Délai d'attente réponse serveur !");
+          client.stop();
+          break;
+        }
+      }
+  
+      Serial.println("Réponse du serveur :");
+      while (client.available()) {
+        Serial.write(client.read());
+      }
+
+      // 5. Fermer la connexion
+      client.stop();
+      Serial.println("\nConnexion HTTP fermée.");
+
+  } else {
+      Serial.println("Échec de la connexion au serveur HTTP.");
+  }
+
+  Serial.println("--- FIN ENVOI HTTP POST ---");
+}
+
+
+// ==================== SETUUUUUUP =======================
 void setup(){
   // Définir le débit en bauds de la console
   Serial.begin(115200);
   delay(10);
-
+  
   // Éteindre la LED
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
- 
+  Serial.println("\nPatientez... Démarrage du modem.");
 
-  Serial.println("\nPatientez...");
-
-  delay(1000);
-
+  // Allumage du modem via PWR_KEY
   pinMode(PWR_KEY, OUTPUT);
   digitalWrite(PWR_KEY, HIGH);
   delay(300);
   digitalWrite(PWR_KEY, LOW);
-
+  
   SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
 
-
- 
-
   // Redémarrer prend un certain temps
-  // Pour le sauter, appelez init() au lieu de restart()
   Serial.println("Initialisation du modem...");
   if (!modem.init()) {
     Serial.println("Échec d'initialisation du modem, tentative de continuation sans redémarrage");
   }
 
-  String name = modem.getModemName();
-  delay(500);
-  Serial.println("Nom du modem : " + name);
-
   String modemInfo = modem.getModemInfo();
-  delay(500);
   Serial.println("Infos modem : " + modemInfo);
+
 
   // Déverrouillez votre carte SIM avec un PIN si nécessaire
   if ( GSM_PIN && modem.getSimStatus() != 3 ) {
       modem.simUnlock(GSM_PIN);
   }
-}
 
-void loop(){
-  modem.sendAT("+CFUN=0 "); //Envoie la commande au modem pour le placer en mode Minimum Functionality (Fonctionnalité Minimale).
-  if (modem.waitResponse(10000L) != 1) {
-    DBG(" +CFUN=0  échoué -> (mise du modem en Fonctionnalité Minimale échoué)"); //config to minim functionality = KO
-  }
-  delay(200);
-
+  // --- CONFIGURATION RÉSEAU (DÉPLACÉE DEPUIS LOOP) ---
+  Serial.println("Configuration du mode réseau...");
+  
   /*
     2 Automatique
     13 GSM seulement
@@ -143,11 +187,9 @@ void loop(){
     51 GSM et LTE uniquement
   */
   String res;
-  // CHANGER LE MODE RÉSEAU, SI NÉCESSAIRE
   res = modem.setNetworkMode(2); // mode automatique
   if (res != "1") {
     DBG("setNetworkMode échoué ");
-    return ;
   }
   delay(200);
 
@@ -156,157 +198,86 @@ void loop(){
     2 NB-IoT
     3 CAT-M et NB-IoT
   */
-  // CHANGER LE MODE PRÉFÉRÉ, SI NÉCESSAIRE
   res = modem.setPreferredMode(1); // mode CAT-M
   if (res != "1") {
     DBG("setPreferredMode échoué ");
-    return ;
   }
   delay(200);
 
-  modem.sendAT("+CFUN=1 "); //Fonctionnalité Complète
+  // S'assurer que le modem est en pleine fonctionnalité
+  modem.sendAT("+CFUN=1 ");
   if (modem.waitResponse(10000L) != 1) {
     DBG(" +CFUN=1 échoué ");
   }
-  delay(200);
+  
+  Serial.println("Configuration modem terminée.");
+  // --- FIN CONFIGURATION RÉSEAU ---
+}
 
-  SerialAT.println("AT+CGDCONT?"); // demande de PDP
-  delay(500);
-  /*
-  Block de code qui garantit la configuration de l'APN
-  */
-  if (SerialAT.available()) { //Vérifie si le modem a envoyé des données.
-    input = SerialAT.readString(); //Lit toute la réponse du modem dans la variable input.
-    for (int i = 0; i < input.length(); i++) {
-      if (input.substring(i, i + 1) == "\n") {
-        pieces[counter] = input.substring(lastIndex, i);
-        lastIndex = i + 1;
-        counter++;
-       }
-        if (i == input.length() - 1) {
-          pieces[counter] = input.substring(lastIndex, i);
-        }
-      }
-      // Réinitialiser pour réutilisation
-      input = "";
-      counter = 0;
-      lastIndex = 0;
 
-      for ( int y = 0; y < numberOfPieces; y++) {
-        for ( int x = 0; x < pieces[y].length(); x++) {
-          char c = pieces[y][x];  // récupère un octet du tampon
-          if (c == ',') {
-            if (input.indexOf(": ") >= 0) {
-              String data = input.substring((input.indexOf(": ") + 1)); //Extrait la valeur du CID
-              if ( data.toInt() > 0 && data.toInt() < 25) {
-                modem.sendAT("+CGDCONT=" + String(data.toInt()) + ",\"IP\",\"" + String(apn) + "\",\"0.0.0.0\",0,0,0,0");
-              }
-              input = "";
-              break;
-            }
-          // Réinitialiser pour réutilisation
-          input = "";
-         } else {
-          input += c;
-         }
-      }
-    }
-  } 
-  else 
-  {
-    Serial.println("Échec de récupération du PDP !");
-  }
+//====================== LOOOOOOOOOOOP ===========================
 
-  Serial.println("\n\n\nAttente du réseau...");
+void loop(){
+  Serial.println("\n\n--- DÉBUT DU CYCLE LOOP ---");
+
+  Serial.println("Attente du réseau...");
   if (!modem.waitForNetwork()) 
   {
-    delay(10000);
-    return;
+    Serial.println("Échec réseau, passage au deep-sleep.");
+  }
+  else
+  {
+    Serial.println("Réseau trouvé. Connexion GPRS...");
+    
+    // Connexion GPRS
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) 
+    {
+      Serial.println("Échec de connexion GPRS.");
+    } 
+    else 
+    {
+      Serial.println("GPRS Connecté.");
+
+      // -------- 1. ENVOI DES DONNÉES HTTP --------
+      sendDataOverHTTP();
+      
+      // -------- 2. TEST ENVOI SMS --------
+      // (Nous avons récupéré l'IMEI au cas où, mais il est préférable de le faire une fois dans setup)
+      String imei = modem.getIMEI();
+      String res;
+      res = modem.sendSMS(SMS_TARGET, String("Project LoRa GSM, sender IMEI: ") + imei);
+      DBG("Statut SMS:", res ? "Envoyé" : "Échec");
+
+      // -------- 3. TESTS GPRS (Optionnel mais utile) --------
+      Serial.println("\n--- INFOS DIAGNOSTIC GPRS ---");
+      String ccid = modem.getSimCCID();
+      Serial.println("CCID : " + ccid);
+      Serial.println("IMEI : " + imei); // Réutilisation
+      String cop = modem.getOperator();
+      Serial.println("Opérateur : " + cop);
+      IPAddress local = modem.localIP();
+      Serial.println("IP locale : " + String(local));
+      int csq = modem.getSignalQuality();
+      Serial.println("Qualité du signal : " + String(csq));
+      Serial.println("--- FIN INFOS GPRS ---");
+
+      // -------- 4. DÉCONNEXION GPRS --------
+      modem.gprsDisconnect();
+      if (!modem.isGprsConnected()) {
+        Serial.println("GPRS déconnecté");
+      } else {
+        Serial.println("Déconnexion GPRS : Échec");
+      }
+    }
   }
 
-  if (modem.isNetworkConnected()) 
-  {
-    Serial.println("Réseau connecté");
-  }
-
-  // --------TEST GPRS--------
-  Serial.println("\n---DÉBUT DU TEST GPRS---\n");
-  Serial.println("Connexion à : " + String(apn));
-  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) 
-  {
-    delay(10000);
-    return;
-  }
-
-  Serial.print("Statut GPRS : ");
-  if (modem.isGprsConnected()) 
-  {
-    Serial.println("connecté");
-  } else 
-  {
-    Serial.println("non connecté");
-  }
-
-  String ccid = modem.getSimCCID();
-  Serial.println("CCID : " + ccid);
-
-  String imei = modem.getIMEI();
-  Serial.println("IMEI : " + imei);
-
-  String cop = modem.getOperator();
-  Serial.println("Opérateur : " + cop);
-
-  IPAddress local = modem.localIP();
-  Serial.println("IP locale : " + String(local));
-
-  int csq = modem.getSignalQuality();
-  Serial.println("Qualité du signal : " + String(csq));
-
-  SerialAT.println("AT+CPSI?");     //Obtenir le type de connexion et la bande
-  delay(500);
-  if (SerialAT.available()) 
-  {
-    String r = SerialAT.readString();
-    Serial.println(r);
-  }
-
-  Serial.println("\n---FIN DU TEST GPRS---\n");
-
-  modem.gprsDisconnect();
-  if (!modem.isGprsConnected()) 
-  {
-    Serial.println("GPRS déconnecté");
-  } else 
-  {
-    Serial.println("Déconnexion GPRS : Échec");
-  }
-
-  // --------TEST ENVOI SMS--------
-  res = modem.sendSMS(SMS_TARGET, String("Salut de la part de ") + imei);
-  DBG("SMS:", res ? "Envoyé" : "Échec");
-
-
-  // --------TEST ARRÊT DU MODÈME--------
-
-  // Essayer d'éteindre (le modem peut décider de redémarrer automatiquement)
-  // Pour éteindre complètement, utiliser les pins Reset/Enable
-  modem.sendAT("+CPOWD=1");
-  if (modem.waitResponse(10000L) != 1) 
-  {
-    DBG("+CPOWD=1");
-  }
-  // La commande suivante fait la même chose que les lignes précédentes
+  // -------- 5. EXTINCTION ET VEILLE --------
+  Serial.println("Extinction du modem...");
   modem.poweroff();
-  Serial.println("Extinction...");
-
-  // DORMIR
+  
+  Serial.println("Mise en veille profonde de l'ESP32 pour 60 secondes...");
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  delay(200);
+  delay(200); // Laisse le temps aux messages série de s'imprimer
   esp_deep_sleep_start();
 
-  // Ne rien faire pour l’éternité
-  while (true) 
-  {
-      modem.maintain();
-  }
 }
