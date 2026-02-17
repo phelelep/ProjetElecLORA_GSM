@@ -1,6 +1,6 @@
 #include <RadioLib.h>
-// NSS: 5, DIO1: 34, NRST: 27, BUSY: 35
-LLCC68 radio = new Module(5, 34, 27, 35);
+// NSS: 5, DIO1: 33, NRST: 27, BUSY: 35
+LLCC68 radio = new Module(5, 34, 14, 35);
 
 void setup() {
   Serial.begin(115200);
@@ -8,26 +8,20 @@ void setup() {
 
   Serial.println(F("\n--- Test de communication ESP32 <-> LoRa CC68 ---"));
   Serial.print(F("[LLCC68] Initialisation... "));
-  int state = radio.begin(868.0);
 
+ int state = radio.begin(868.0, 125.0, 9, 7, 0x12, 10, 8, 1.6);
   if (state == RADIOLIB_ERR_NONE) {
     Serial.println(F("SUCCÈS !"));
     Serial.println(F("Le module LoRa répond et le câblage SPI est correct."));
   } else {
     Serial.print(F("ÉCHEC. Code erreur : "));
     Serial.println(state);
-    
-    // Aide au diagnostic
-    if (state == -2) Serial.println(F("Erreur: Le module ne répond pas"));
-    if (state == -70) Serial.println(F("Erreur: Broche BUSY bloquée. Vérifiez le GPIO 35."));
-    
+
     while (true); // Bloque ici si ça ne marche pas
   }
 }
 
 void loop() {
-  // Si on arrive ici, tout va bien. 
-  // On fait juste un petit scan rapide pour confirmer que la puce est active
   Serial.println(F("Module opérationnel. En attente de commandes..."));
   delay(10000);
 }
