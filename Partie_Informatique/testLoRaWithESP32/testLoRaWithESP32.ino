@@ -1,41 +1,28 @@
-#include <RadioLib.h>
+#include <SPI.h>
+#include <LoRa.h>
 
 #define LORA_NSS   5
-#define LORA_DIO1  34
+#define LORA_DIO1  34    // = irqPin pour LoRa.h
 #define LORA_NRST  27
-#define LORA_BUSY  35
-
-LLCC68 radio = new Module(LORA_NSS, LORA_DIO1, LORA_NRST, LORA_BUSY);
+// BUSY = 35 → pas utilisé par LoRa.h
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);  // Give time for serial
+  delay(1000);
+  Serial.println("Test LoRa.h - SX127x seulement !");
 
-  Serial.println("\n=== LLCC68 Init Test (XTAL mode) ===");
-  Serial.print("Pins: NSS="); Serial.print(LORA_NSS);
-  Serial.print(" DIO1="); Serial.print(LORA_DIO1);
-  Serial.print(" NRST="); Serial.print(LORA_NRST);
-  Serial.print(" BUSY="); Serial.println(LORA_BUSY);
+  LoRa.setPins(LORA_NSS, LORA_NRST, LORA_DIO1);
 
-  pinMode(LORA_BUSY, INPUT);
-  pinMode(LORA_DIO1, INPUT);
-
-  Serial.print("Initial BUSY state: "); Serial.println(digitalRead(LORA_BUSY));
-
-  // Force XTAL (crystal) – this is key for standard LoRa-CC68-868
-  int state = radio.begin(868.0, 125.0, 9, 7, 0x12, 10, 8, 0.0f);
-
-  Serial.print("[LLCC68] begin() returned: "); Serial.println(state);
-
-  if (state == RADIOLIB_ERR_NONE) {
-    Serial.println("SUCCESS! Module ready (using crystal oscillator).");
-  } else {
-    Serial.print("FAILED – code "); Serial.println(state);
+  if (!LoRa.begin(868E6)) {           // 868 MHz
+    Serial.println("Echec LoRa.begin()");
     while (true);
   }
+
+  Serial.println("LoRa OK !");
+  LoRa.setSyncWord(0x12);             // même sync word que RadioLib
 }
 
 void loop() {
-  Serial.println("In the main loop...");
-  delay(3000);
+  Serial.println("Module SX127x prêt");
+  delay(5000);
 }
