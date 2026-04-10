@@ -2,7 +2,7 @@
 #include <LoRa.h>
 
 unsigned long lastTx = 0;
-const unsigned long TX_INTERVAL = 60000;   // envoi toutes les x secondes
+const unsigned long TX_INTERVAL = 10000;   // envoi toutes les x secondes
 
 int txCount = 0;
 int rxCount = 0;
@@ -29,7 +29,7 @@ void setup() {
   LoRa.enableCrc();
 
   Serial.println("LoRa initialized successfully !");
-  Serial.println("Envoi toutes les 5s + écoute permanente\n");
+  Serial.println("Envoi toutes les xs + écoute permanente\n");
 }
 
 void loop() {
