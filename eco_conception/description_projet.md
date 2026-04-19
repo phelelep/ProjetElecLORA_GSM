@@ -15,11 +15,14 @@ Les modules/composants matériels principaux intervenant dans cette passerelle s
 ## 2. Définition de l'unité fonctionnelle
 L'unité fonctionnelle (UF) d'un produit caractérise de manière quantifiable le service rendu par ce produit. Elle sert de référence (quantité de référence) dans toute étude d'Analyse du Cycle de Vie (ACV) ou démarche d'écoconception.
 
+2 def : 
+L'unité fonctionnelle est une partie essentielle de la création de l'analyse du cycle de vie d'un produit. Il s'agit de l'unité d'échelle ou de référence sur laquelle les résultats de l'évaluation du cycle de vie (ECV) sont basés et qui se rapporte à la fonction donnée du produit.
+
 Pour cette passerelle LoRa/GSM de ruche connectée, une définition pertinente et complète de l'unité fonctionnelle peut s'énoncer de la manière suivante :
 
 > **« Assurer la collecte locale (via LoRa) et la transmission distante (via GSM/LTE) des paramètres environnementaux d'une ruche, à une fréquence d'un envoi toutes les X heures, dans un environnement rural, pour une durée de vie anticipée de 5 ans. »**
 
 Les grandeurs clés de cette unité fonctionnelle sont :
-- **L'action technique (Quoi ?)** : Collecte de petits paquets de données et ré-émission sur le réseau mobile.
-- **Le contexte (Où ?) / La portée** : Communication radio LoRa pour un capteur éloigné de l'ESP32, puis liaison data via les antennes relais GSM de l'opérateur local.
-- **La performance / La durée (Combien de temps ?)** : La durée de vie d'usage estimée (ex: 5 ans) est une donnée vitale car elle permet de répartir les impacts de fabrication sur le service rendu et détermine si un renouvellement de la batterie ou du matériel sera à intégrer dans le calcul global.
+- **L'action technique** : Collecte de petits paquets de données et ré-émission sur le réseau mobile.
+- **Le contexte** : Communication radio LoRa pour un capteur éloigné de l'ESP32, puis liaison data via les antennes relais GSM de l'opérateur local.
+- **La performance / La durée** : La durée de vie d'usage estimée (ex: 5 ans) est une donnée vitale car elle permet de répartir les impacts de fabrication sur le service rendu et détermine si un renouvellement de la batterie ou du matériel sera à intégrer dans le calcul global.
