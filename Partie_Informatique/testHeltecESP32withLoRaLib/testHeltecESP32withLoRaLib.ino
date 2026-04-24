@@ -2,7 +2,7 @@
 #include <LoRa.h>
 
 unsigned long lastTx = 0;
-const unsigned long TX_INTERVAL = 10000;   // envoi toutes les x secondes
+const unsigned long TX_INTERVAL = 5000;   // envoi toutes les x secondes
 
 int txCount = 0;
 int rxCount = 0;
@@ -37,6 +37,19 @@ void loop() {
   if (millis() - lastTx >= TX_INTERVAL) {
     lastTx = millis();
     txCount++;
+
+
+    // envoi du wakup 
+    String msgWAKEUP = "Wakeup from Heltec #" + String(txCount) + " - " + String(millis() / 1000) + "s";
+
+    Serial.print("TX #"); Serial.print(txCount); 
+    Serial.print(" → "); Serial.println(msgWAKEUP);
+
+    // Envoi du message
+    LoRa.beginPacket();
+    LoRa.print(msgWAKEUP);
+    LoRa.endPacket();
+    delay(5000); 
 
     String msg = "Hello from Heltec #" + String(txCount) + " - " + String(millis() / 1000) + "s";
 

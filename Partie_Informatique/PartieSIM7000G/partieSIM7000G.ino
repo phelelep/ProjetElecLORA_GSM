@@ -82,7 +82,7 @@ TinyGsmClient client(modem);
 //#define PIN_DTR     25
 #define PIN_RX      16
 #define PIN_TX      17
-#define PWR_KEY     13
+#define PWR_KEY     4
 #define LED_PIN     12
 
 
